@@ -12,3 +12,7 @@ It will create a snapshot.txt automatically in the working directory with the cu
 
 Compare snapshots :
 > ./fschangelog log_old.txt log_nex.txt
+
+Todo :
+    - Add a switch that enables comparing by date also
+    - Add a switch that sets the top level path of the comparison
