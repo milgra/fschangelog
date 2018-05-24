@@ -62,7 +62,7 @@
         bytes -= sizeof( struct mtmem_head );
         struct mtmem_head* head = ( struct mtmem_head* ) bytes;
 
-        assert( head->retaincount < UINT16_MAX - 1 );
+        assert( head->retaincount < SIZE_MAX - 1 );
 
         head->retaincount += 1;
 		

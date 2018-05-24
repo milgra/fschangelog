@@ -35,6 +35,9 @@ void scan_directory( char* path )
         
         while ( ( entry = readdir( dir ) ) != NULL )
         {
+            char newpath[ MAXPATHLEN + 1 ] = { 0 };
+            snprintf( newpath, MAXPATHLEN + 1, "%s/%s", path, entry->d_name );
+
             if ( entry->d_type == DT_DIR || entry->d_type == DT_UNKNOWN )
             {
                 if ( strcmp( entry->d_name, "." ) == 0 || strcmp( entry->d_name, ".." ) == 0 )
@@ -46,36 +49,28 @@ void scan_directory( char* path )
                     fwrite( entry->d_name , entry->d_namlen , 1 , file );
                     fwrite( dirdown , 3 , 1 , file );
                     
-                    printf("\033[4;0HDirectories %zu" , dircount++ );
-                    printf("\033[5;0H%-*.*s" , MAXPATHLEN,MAXPATHLEN, path );
+                    dircount++;
 
-                    char newpath[ MAXPATHLEN + 1 ] = { 0 };
-                    snprintf( newpath, MAXPATHLEN + 1, "%s/%s", path, entry->d_name );
                     scan_directory( newpath );
                 }
             }
-            else
+            else if ( entry->d_type == DT_REG )
             {
                 // write filename and size
                 
                 fwrite( entry->d_name , entry->d_namlen , 1 , file );
                 fwrite( newline , 1 , 1 , file );
-
-                printf("\033[2;0HSkipped %zu" , skipcount );
-                printf("\033[3;0HFiles %zu" , filecount++ );
-
-                char newpath[ MAXPATHLEN + 1 ] = { 0 };
-                snprintf( newpath, MAXPATHLEN + 1, "%s/%s", path, entry->d_name );
+                
+                filecount++;
 
                 int filehandle = open( newpath , O_RDONLY );
                 
-                if ( filehandle > -2 )
+                if ( filehandle > -1 )
                 {
                     struct stat fileStat;
                     if ( fstat( filehandle, &fileStat) < 0 )
                     {
                         skipcount++;
-                        // printf("\033[10;0HInvalid filestat for %s" , newpath );
                         char sizestr[ 1 ] = { 0 };
                         fwrite( sizestr , 1 , 1 , file );
                         fwrite( newline , 1 , 1 , file );
@@ -94,10 +89,22 @@ void scan_directory( char* path )
                 else
                 {
                     skipcount++;
-                    // printf("\033[11;0HInvalid filehandle for %s" , newpath );
+                    char sizestr[ 1 ] = { 0 };
+                    fwrite( sizestr , 1 , 1 , file );
+                    fwrite( newline , 1 , 1 , file );
                 }
             }
+            else
+            {
+                skipcount++;
+            }
+            
+            printf("\033[1;0HScanning directories...");
+            printf("\033[2;0HSkipped %zu" , skipcount );
+            printf("\033[3;0HFiles %zu" , filecount );
+            printf("\033[4;0HDirectories %zu\n" , dircount );
         }
+        
         fwrite( dirup , 3 , 1 , file );
 
         closedir(dir);
@@ -105,13 +112,13 @@ void scan_directory( char* path )
     else
     {
         skipcount++;
-        // printf("\033[12;0HInvalid directory %s : %s" , path , strerror( errno ) );
     }
-    printf("\n");
 }
 
 void parse_log( char compare )
 {
+    mtvec_t* updates = mtvec_alloc();
+    
     char line[ MAXPATHLEN + 1 ] = { 0 };
     char path[ MAXPATHLEN + 1 ] = { 0 };
     char name[ MAXPATHLEN + 1 ] = { 0 };
@@ -162,7 +169,7 @@ void parse_log( char compare )
                             char* sizestr = mtmap_get( path_to_size , path );
                             if ( sizestr == NULL )
                             {
-                                printf( "ADDED : %s\n" , path );
+                                printf( "a: %s\n" , path );
                             }
                             else mtmap_del( path_to_size , path );
                         }
@@ -173,6 +180,8 @@ void parse_log( char compare )
                             mtmap_put( path_to_size , path , sizestr );
                             mtmem_release( sizestr );
                         }
+                        
+                        dircount++;
                     }
                     else if ( line[0] == '<' )
                     {
@@ -187,7 +196,7 @@ void parse_log( char compare )
                     else
                     {
                         int lastpos = pathpos;
-                        // fule, append name to path
+                        // file, append name to path
                         memcpy( path + pathpos + 1 , name, namepos + 1 );
                         pathpos += namepos + 1;
                         path[ pathpos + 1 ] = '\0';
@@ -202,14 +211,14 @@ void parse_log( char compare )
                             char* oldsizestr = mtmap_get( path_to_size , path );
                             if ( oldsizestr == NULL )
                             {
-                                printf( "ADDED : %s\n" , path );
+                                printf( "a: %s\n" , path );
                             }
                             else
                             {
                                 // check size
                                 if ( strcmp( sizestr , oldsizestr ) != 0 )
                                 {
-                                    printf( "UPDATED : %s" , path );
+                                    mtvec_adddata( updates , mtcstr_fromcstring( path ) );
                                 }
                                 mtmap_del( path_to_size , path );
                             }
@@ -219,11 +228,16 @@ void parse_log( char compare )
                             // store size and path
                             mtmap_put( path_to_size , path , sizestr );
                             mtmem_release( sizestr );
+
+                            printf("\033[2;0HFiles %zu" , filecount );
+                            printf("\033[3;0HDirectories %zu\n" , dircount );
                         }
                         
                         // reset path
                         pathpos = lastpos;
                         path[ pathpos + 1 ] = '\0';
+                        
+                        filecount++;
                     }
                 }
                 else
@@ -243,21 +257,28 @@ void parse_log( char compare )
     
     if ( compare == 1 )
     {
+        printf("\n");
         // remaining paths are deleted
         mtvec_t* deleted = mtmap_keys( path_to_size );
         for ( int index = 0 ; index < deleted->length ; index++ )
         {
-            printf( "DELETED : %s\n" , deleted->data[ index ] );
+            printf( "d: %s\n" , deleted->data[ index ] );
+        }
+        printf("\n");
+        // remaining paths are deleted
+        for ( int index = 0 ; index < updates->length ; index++ )
+        {
+            printf( "u: %s\n" , updates->data[ index ] );
         }
     }
 }
 
 int main(int argc, const char * argv[])
 {
+    printf("\033[2J");
+
     if ( argc == 1 )
     {
-        printf("\033[2J");
-        printf("\033[1;0HScanning directories...");
         char newname[ MAXPATHLEN + 1 ] = { 0 };
         time_t now = time (0);
         strftime (newname, MAXPATHLEN + 1, "snapshot_%Y-%m-%d_%H-%M-%S.txt", localtime(&now) );
@@ -269,14 +290,13 @@ int main(int argc, const char * argv[])
     {
         path_to_size = mtmap_alloc();
 
-        printf("PARSING LOG...\n");
+        printf("\033[1;0HParsing %s...",argv[1]);
+
         file = fopen( argv[1] , "r" );
         parse_log( 0 );
         fclose( file );
         
-        printf( "path count %zx\n" , path_to_size->count );
-
-        printf("COMPARING LOG...\n");
+        printf("\033[4;0HComparing to %s...\n",argv[2]);
         file = fopen( argv[2] , "r" );
         parse_log( 1 );
         fclose( file );
