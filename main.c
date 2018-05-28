@@ -54,7 +54,7 @@ void scan_directory( char* path )
                     scan_directory( newpath );
                 }
             }
-            else if ( entry->d_type == DT_REG )
+            else if ( entry->d_type == DT_REG || entry->d_type == DT_LNK )
             {
                 // write filename and size
                 
@@ -77,8 +77,8 @@ void scan_directory( char* path )
                     }
                     else
                     {
-                        char sizestr[ 16 + 1 ] = { 0 };
-                        snprintf( sizestr, 16 + 1, "%llx", fileStat.st_size );
+                        char sizestr[ 16 + 16 + 1 ] = { 0 };
+                        snprintf( sizestr, 16 + 16 + 1, "%llx%lx", fileStat.st_size , fileStat.st_mtimespec.tv_sec );
 
                         fwrite( sizestr , strlen( sizestr ) , 1 , file );
                         fwrite( newline , 1 , 1 , file );
@@ -96,15 +96,14 @@ void scan_directory( char* path )
             }
             else
             {
-                skipcount++;
+                // skipcount++;
             }
-            
-            printf("\033[1;0HScanning directories...");
-            printf("\033[2;0HSkipped %zu" , skipcount );
-            printf("\033[3;0HFiles %zu" , filecount );
-            printf("\033[4;0HDirectories %zu\n" , dircount );
         }
-        
+        printf("\033[1;0HScanning directories...");
+        printf("\033[2;0HSkipped %zu" , skipcount );
+        printf("\033[3;0HFiles %zu" , filecount );
+        printf("\033[4;0HDirectories %zu\n" , dircount );
+
         fwrite( dirup , 3 , 1 , file );
 
         closedir(dir);
@@ -279,27 +278,50 @@ int main(int argc, const char * argv[])
 
     if ( argc == 1 )
     {
-        char newname[ MAXPATHLEN + 1 ] = { 0 };
-        time_t now = time (0);
-        strftime (newname, MAXPATHLEN + 1, "snapshot_%Y-%m-%d_%H-%M-%S.txt", localtime(&now) );
-        file = fopen( newname , "a" );
-        scan_directory( root );
-        fclose( file );
+        printf("\033[0;0Hfschangelog v0.4\nCreates and compares ligthweight directory snapshots based on file size and last modification date.\n");
+        printf("-s create snapshot of file system ( use it with sudo! )\n");
+        printf("-s -d [path] create snapshot of specified directory \n");
+        printf("-c [path1] [path2] compare two directory snapshots \n");
     }
-    else
+    else if ( argc == 2 )
     {
-        path_to_size = mtmap_alloc();
+        if ( 0 == strcmp( argv[1] , "-s" ) )
+        {
+            char newname[ MAXPATHLEN + 1 ] = { 0 };
+            time_t now = time (0);
+            strftime (newname, MAXPATHLEN + 1, "snapshot_%Y-%m-%d_%H-%M-%S.txt", localtime(&now) );
+            file = fopen( newname , "a" );
+            scan_directory( root );
+            fclose( file );
+        }
+    }
+    else if ( argc == 4 )
+    {
+        if ( 0 == strcmp( argv[1] , "-s" ) && 0 == strcmp( argv[2] , "-d" ) )
+        {
+            root = (char*) argv[3];
+            char newname[ MAXPATHLEN + 1 ] = { 0 };
+            time_t now = time (0);
+            strftime (newname, MAXPATHLEN + 1, "snapshot_%Y-%m-%d_%H-%M-%S.txt", localtime(&now) );
+            file = fopen( newname , "a" );
+            scan_directory( root );
+            fclose( file );
+        }
+        else if ( 0 == strcmp( argv[1] , "-c" ) )
+        {
+            path_to_size = mtmap_alloc();
 
-        printf("\033[1;0HParsing %s...",argv[1]);
+            printf("\033[1;0HParsing %s...",argv[2]);
 
-        file = fopen( argv[1] , "r" );
-        parse_log( 0 );
-        fclose( file );
-        
-        printf("\033[4;0HComparing to %s...\n",argv[2]);
-        file = fopen( argv[2] , "r" );
-        parse_log( 1 );
-        fclose( file );
+            file = fopen( argv[2] , "r" );
+            parse_log( 0 );
+            fclose( file );
+            
+            printf("\033[4;0HComparing to %s...\n",argv[3]);
+            file = fopen( argv[3] , "r" );
+            parse_log( 1 );
+            fclose( file );
+        }
     }
     
     return 0;

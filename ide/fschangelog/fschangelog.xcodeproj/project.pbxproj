@@ -37,6 +37,8 @@
 		33271CD420B6B3E2007EE16C /* mtmem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mtmem.c; path = ../../../mtmem.c; sourceTree = "<group>"; };
 		33271CD520B6B3E2007EE16C /* mtmap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mtmap.c; path = ../../../mtmap.c; sourceTree = "<group>"; };
 		33271CD620B6B3E2007EE16C /* mtmap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtmap.h; path = ../../../mtmap.h; sourceTree = "<group>"; };
+		335F274B20B99EFC00ADC5B6 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; name = LICENSE; path = ../../../LICENSE; sourceTree = "<group>"; };
+		335F274C20B99EFC00ADC5B6 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../../README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,8 @@
 				33271CD120B6B3E2007EE16C /* mtmem.h */,
 				33271CD020B6B3E2007EE16C /* mtvec.c */,
 				33271CCF20B6B3E1007EE16C /* mtvec.h */,
+				335F274B20B99EFC00ADC5B6 /* LICENSE */,
+				335F274C20B99EFC00ADC5B6 /* README.md */,
 			);
 			path = fschangelog;
 			sourceTree = "<group>";
