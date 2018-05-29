@@ -275,15 +275,10 @@ void parse_log( char compare )
 int main(int argc, const char * argv[])
 {
     printf("\033[2J");
+    
+    char showhelp = 0;
 
-    if ( argc == 1 )
-    {
-        printf("\033[0;0Hfschangelog v0.4\nCreates and compares ligthweight directory snapshots based on file size and last modification date.\n");
-        printf("-s create snapshot of file system ( use it with sudo! )\n");
-        printf("-s -d [path] create snapshot of specified directory \n");
-        printf("-c [path1] [path2] compare two directory snapshots \n");
-    }
-    else if ( argc == 2 )
+    if ( argc == 2 )
     {
         if ( 0 == strcmp( argv[1] , "-s" ) )
         {
@@ -294,6 +289,7 @@ int main(int argc, const char * argv[])
             scan_directory( root );
             fclose( file );
         }
+        else showhelp = 1;
     }
     else if ( argc == 4 )
     {
@@ -322,6 +318,16 @@ int main(int argc, const char * argv[])
             parse_log( 1 );
             fclose( file );
         }
+        else showhelp = 1;
+    }
+    else showhelp = 1;
+    
+    if ( showhelp == 1 )
+    {
+        printf("\033[0;0Hfschangelog v0.4\nCreates and compares ligthweight directory snapshots based on file size and last modification date.\n");
+        printf("-s create snapshot of file system ( use it with sudo! )\n");
+        printf("-s -d [path] create snapshot of specified directory \n");
+        printf("-c [path1] [path2] compare two directory snapshots \n");
     }
     
     return 0;
