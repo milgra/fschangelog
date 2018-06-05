@@ -46,7 +46,8 @@ void scan_directory( char* path )
                     {
                         // write entry name to file with dirdown
                         
-                        fwrite( entry->d_name , entry->d_namlen , 1 , file );
+                        //fwrite( entry->d_name , entry->d_namlen , 1 , file ); // faster for os x
+                        fwrite( entry->d_name , strlen( entry->d_name ) , 1 , file );
                         fwrite( dirdownline , 3 , 1 , file );
 
                         dircount++;
@@ -60,7 +61,8 @@ void scan_directory( char* path )
                     {
                         // write entry name to file
 
-                        fwrite( entry->d_name , entry->d_namlen , 1 , file );
+                        //fwrite( entry->d_name , entry->d_namlen , 1 , file ); // faster for os x
+                        fwrite( entry->d_name , strlen( entry->d_name ) , 1 , file );
                         fwrite( newline , 1 , 1 , file );
                         
                         filecount++;
@@ -84,7 +86,7 @@ void scan_directory( char* path )
                                 else
                                 {
                                     char sizestr[ 16 + 16 + 1 ] = { 0 };
-                                    snprintf( sizestr, 16 + 16 + 1, "%llx%lx", fileStat.st_size , fileStat.st_mtimespec.tv_sec );
+                                    snprintf( sizestr, 16 + 16 + 1, "%llx%lx", fileStat.st_size , fileStat.st_mtime );
 
                                     fwrite( sizestr , strlen( sizestr ) , 1 , file );
                                     fwrite( newline , 1 , 1 , file );
