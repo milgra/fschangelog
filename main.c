@@ -65,7 +65,7 @@ void scan_directory( char* path )
                         
                         filecount++;
                         
-                        // try to write down file size if possible, if not then zero az sixze
+                        // try to write down file size if possible, if not then zero az size
                         
                         if ( entry->d_type != DT_LNK )
                         {
