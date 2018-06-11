@@ -19,7 +19,7 @@ char* dirupline = "\n<\n";
 char* dirdownline = "\n>\n";
 
 FILE* file = NULL;
-mtmap_t* path_to_size;
+mtmap_t* path_to_hash;
 
 size_t dircount = 0;
 size_t filecount = 0;
@@ -67,7 +67,7 @@ void scan_directory( char* path )
                         
                         filecount++;
                         
-                        // try to write down file size if possible, if not then zero az size
+                        // try to write down file hash if possible, if not then zero as hash
                         
                         if ( entry->d_type != DT_LNK )
                         {
@@ -85,10 +85,10 @@ void scan_directory( char* path )
                                 }
                                 else
                                 {
-                                    char sizestr[ 16 + 16 + 1 ] = { 0 };
-                                    snprintf( sizestr, 16 + 16 + 1, "%llx%lx", fileStat.st_size , fileStat.st_mtime );
+                                    char hashstr[ 16 + 16 + 1 ] = { 0 };
+                                    snprintf( hashstr, 16 + 16 + 1, "%llx%lx", fileStat.st_size , fileStat.st_mtime );
 
-                                    fwrite( sizestr , strlen( sizestr ) , 1 , file );
+                                    fwrite( hashstr , strlen( hashstr ) , 1 , file );
                                     fwrite( newline , 1 , 1 , file );
                                 }
                                 
@@ -168,7 +168,7 @@ void parse_log( char compare )
                 }
                 else
                 {
-                    // checking size info
+                    // checking hash info
                     
                     if ( linepos > 0 )
                     {
@@ -184,22 +184,22 @@ void parse_log( char compare )
                             
                             if ( compare == 1 )
                             {
-                                // compare size and path
+                                // compare hash and path
                                 
-                                char* sizestr = mtmap_get( path_to_size , path );
-                                if ( sizestr == NULL )
+                                char* hashstr = mtmap_get( path_to_hash , path );
+                                if ( hashstr == NULL )
                                 {
                                     printf( "a: %s\n" , path );
                                 }
-                                else mtmap_del( path_to_size , path );
+                                else mtmap_del( path_to_hash , path );
                             }
                             else
                             {
-                                // store size and path
+                                // store hash and path
                                 
-                                char* sizestr = mtcstr_fromcstring( "0" );
-                                mtmap_put( path_to_size , path , sizestr );
-                                mtmem_release( sizestr );
+                                char* hashstr = mtcstr_fromcstring( "0" );
+                                mtmap_put( path_to_hash , path , hashstr );
+                                mtmem_release( hashstr );
                             }
                             
                             dircount++;
@@ -217,7 +217,7 @@ void parse_log( char compare )
                         }
                         else
                         {
-                            // size, read it up
+                            // hash, read it up
                             
                             int lastpos = pathpos;
                             
@@ -225,35 +225,35 @@ void parse_log( char compare )
                             pathpos += namepos + 1;
                             path[ pathpos + 1 ] = '\0';
 
-                            // filesize
+                            // filehash
                             line[ linepos ] = '\0';
-                            char* sizestr = mtcstr_fromcstring( line );
+                            char* hashstr = mtcstr_fromcstring( line );
                             
                             if ( compare == 1 )
                             {
-                                // compare size and path
+                                // compare hash and path
                                 
-                                char* oldsizestr = mtmap_get( path_to_size , path );
-                                if ( oldsizestr == NULL )
+                                char* oldhashstr = mtmap_get( path_to_hash , path );
+                                if ( oldhashstr == NULL )
                                 {
                                     printf( "a: %s\n" , path );
                                 }
                                 else
                                 {
-                                    // compare size, add to updates if differs
-                                    if ( strcmp( sizestr , oldsizestr ) != 0 )
+                                    // compare hash, add to updates if differs
+                                    if ( strcmp( hashstr , oldhashstr ) != 0 )
                                     {
                                         mtvec_adddata( updates , mtcstr_fromcstring( path ) );
                                     }
-                                    mtmap_del( path_to_size , path );
+                                    mtmap_del( path_to_hash , path );
                                 }
                             }
                             else
                             {
-                                // store size and path
+                                // store hash and path
                                 
-                                mtmap_put( path_to_size , path , sizestr );
-                                mtmem_release( sizestr );
+                                mtmap_put( path_to_hash , path , hashstr );
+                                mtmem_release( hashstr );
 
                                 printf("\033[2;0HFiles %zu" , filecount );
                                 printf("\033[3;0HDirectories %zu\n" , dircount );
@@ -272,7 +272,7 @@ void parse_log( char compare )
                     }
                 }
                 
-                // switch name/size line
+                // switch name/hash line
                 
                 isname = 1 - isname;
                 linepos = 0;
@@ -290,14 +290,14 @@ void parse_log( char compare )
     if ( compare == 1 )
     {
         printf("\n");
-        mtvec_t* deleted = mtmap_keys( path_to_size );
+        mtvec_t* deleted = mtmap_keys( path_to_hash );
 
         for ( int index = 0 ; index < deleted->length ; index++ )
         {
             printf( "d: %s\n" , deleted->data[ index ] );
         }
+        
         printf("\n");
-
         for ( int index = 0 ; index < updates->length ; index++ )
         {
             printf( "u: %s\n" , updates->data[ index ] );
@@ -335,7 +335,7 @@ int main(int argc, const char * argv[])
         }
         else if ( 0 == strcmp( argv[1] , "-c" ) )
         {
-            path_to_size = mtmap_alloc();
+            path_to_hash = mtmap_alloc();
 
             printf("\033[1;0HParsing %s...",argv[2]);
 
